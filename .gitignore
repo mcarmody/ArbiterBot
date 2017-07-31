@@ -1,8 +1,10 @@
+*.exe
+*.dll
 *.json
 *.pyc
 __pycache__
 data
 !data/trivia/*
 !data/audio/playlists/*
-*.exe
-*.dll
+lib
+start_*.sh

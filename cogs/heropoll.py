@@ -12,7 +12,7 @@ import discord
 from discord.ext import commands
 
 # TODO(timzwiebel): Allow customizing the global default poll question?
-_DEFAULT_POLL_QUESTION = '**Which hero should I play?**'
+_DEFAULT_POLL_QUESTION = '**Which hero should I play this game?**'
 
 
 class HeroPoll(object):

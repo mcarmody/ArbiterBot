@@ -31,7 +31,7 @@ class HeroPollCommand(object):
     command = ctx.message.content.split()
     if len(command) <= 1:
       await ctx.bot.say(
-          'Invalid arguments; see **{}help heropoll**'.format(ctx.prefix))
+          'Invalid arguments; see `{}help heropoll`'.format(ctx.prefix))
       return
     if command[1].lower() == 'stop':
       # TODO(timzwiebel): stop? end? finish? What's the best subcommand?

@@ -13,7 +13,7 @@ class Dota(object):
 
   @commands.command(pass_context=True, no_pm=True)
   async def heropoll(self, ctx):
-    """Starts/stops a poll.
+    """Starts/stops a poll to choose a hero to play.
 
     Usage:
       Start a poll:

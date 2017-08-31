@@ -1,4 +1,4 @@
-"""A cog for polling which heroes to play.
+"""The implementation of the heropoll command.
 
 Based on the "poll" command from the "general" cog.
 
@@ -6,17 +6,14 @@ If the bot has permission to "Manage Messages", it will delete votes from users
 after they are counted (to avoid clutter).
 """
 
-import collections
-
 import discord
-from discord.ext import commands
 
 # TODO(timzwiebel): Allow customizing the global default poll question?
 _DEFAULT_POLL_QUESTION = '**Which hero should I play this game?**'
 
 
-class HeroPoll(object):
-  """Commands for polling which heroes to play."""
+class HeroPollCommand(object):
+  """The implementation of the heropoll command."""
 
   def __init__(self, bot):
     # Ideally, we would use ctx.bot everywhere, but on_message doesn't seem to
@@ -24,24 +21,8 @@ class HeroPoll(object):
     self._bot = bot
     self._channel_poll_map = {}
 
-  @commands.command(pass_context=True, no_pm=True)
   async def heropoll(self, ctx):
-    """Starts/stops a poll.
-
-    Usage:
-      Start a poll:
-        heropoll <comma-separated list of options>
-      Stop a poll and print the results:
-        heropoll stop
-      Stop a poll without printing the results:
-        heropoll abort
-
-    Examples:
-      heropoll Brewmaster, Lone Druid, Meepo
-      heropoll abort
-      heropoll Viper, Hero that gets dumpstered by Viper in lane
-      heropoll stop
-    """
+    """See cogs/dota.py for for the documentation for this method."""
     # TODO(timzwiebel): Add additional controls for heroes in the poll?
     # For example,
     #   - we could maintain a list of all heroes and allow polls for "all", or
@@ -186,9 +167,3 @@ class _Poll(object):
     await bot.send_message(
         message.author,
         'Vote acknowledged: **{}. {}**'.format(vote, self._options[vote - 1]))
-
-
-def setup(bot):
-  bot.add_cog(HeroPoll(bot))
-  # TODO(timzwiebel): Ensure that these commands are protected by a role so that
-  # not just anyone can create polls.

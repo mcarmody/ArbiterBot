@@ -60,9 +60,6 @@ class HeroPollCommand(object):
     if not poll:
       await ctx.bot.say('There is no ongoing hero poll in this channel')
       return
-    if ctx.message.author.id != poll.get_author_id():
-      await ctx.bot.say('Only the author can stop the poll')
-      return
     del self._channel_poll_map[ctx.message.channel.id]
     if len(self._channel_poll_map) == 0:
       # Only remove the listener when removing the last poll.

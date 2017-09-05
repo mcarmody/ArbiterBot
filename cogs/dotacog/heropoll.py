@@ -5,6 +5,7 @@ Based on the "poll" command from the "general" cog.
 
 import discord
 
+from ..utils import command_parsing
 from ..utils.dataIO import dataIO
 
 # The default open poll question.
@@ -117,13 +118,13 @@ class HeroPollCommand(object):
 
   async def heropoll(self, ctx):
     """See cogs/dota.py for for the documentation for this method."""
-    command_args = [arg.strip() for arg in ctx.message.content.split(None, 2)]
+    command_args = command_parsing.get_stripped_command(ctx).split(None, 2)
     if len(command_args) <= 1:
       await ctx.bot.say(_INVALID_ARGUMENTS_TEMPLATE.format(ctx.prefix))
       return
     sub_command = command_args[1]
     if sub_command == _START_COMMAND:
-      await self._start_poll(ctx)
+      await self._start_poll(ctx, command_args)
     elif sub_command == _STOP_COMMAND:
       await self._stop_poll(ctx, say_results=True)
     elif sub_command == _ABORT_COMMAND:
@@ -131,7 +132,7 @@ class HeroPollCommand(object):
     else:
       await ctx.bot.say(_INVALID_ARGUMENTS_TEMPLATE.format(ctx.prefix))
 
-  async def _start_poll(self, ctx):
+  async def _start_poll(self, ctx, command_args):
     # Check for existing polls.
     poll = self._channel_poll_map.get(ctx.message.channel.id)
     if poll:
@@ -139,7 +140,6 @@ class HeroPollCommand(object):
       return
 
     # Parse the start command.
-    command_args = ctx.message.content.split(None, 2)
     if len(command_args) <= 2:
       # No options were given, so it's an open poll.
       is_open = True
@@ -193,11 +193,9 @@ class HeroPollCommand(object):
     if not poll:
       return
 
-    stripped_content = message.content.strip()
-
     # Try to parse the message as a number.
     try:
-      index = int(stripped_content)
+      index = int(message.content)
     except ValueError:
       pass
     else:
@@ -206,7 +204,7 @@ class HeroPollCommand(object):
 
     # Try to parse the message as a hero name.
     try:
-      hero_name = self._parse_string_as_hero_name(stripped_content)
+      hero_name = self._parse_string_as_hero_name(message.content)
     except ValueError:
       pass
     else:

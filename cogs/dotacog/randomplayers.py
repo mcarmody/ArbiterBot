@@ -5,6 +5,8 @@ import random
 
 import discord
 
+from ..utils import command_parsing
+
 # TODO(timzwiebel): Allow the duration to be configured (globally and/or per
 # server).
 _QUESTION_DURATION_SECONDS = 30
@@ -70,7 +72,8 @@ class RandomPlayersCommand(object):
       await ctx.bot.say(_SELECTION_EXISTS_MESSAGE)
       return
 
-    command_args = [arg.strip() for arg in ctx.message.content.split(None, 1)]
+    # Parse the command.
+    command_args = command_parsing.get_stripped_command(ctx).split(None, 1)
 
     # Parse the number of players.
     if len(command_args) <= 1:

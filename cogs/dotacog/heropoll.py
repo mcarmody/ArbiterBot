@@ -1,9 +1,6 @@
 """The implementation of the heropoll command.
 
 Based on the "poll" command from the "general" cog.
-
-If the bot has permission to "Manage Messages", it will delete votes from users
-after they are counted (to avoid clutter).
 """
 
 import discord
@@ -12,11 +9,11 @@ from ..utils.dataIO import dataIO
 
 # The default open poll question.
 _DEFAULT_OPEN_POLL_QUESTION = (
-    '**Which hero should I play this game? Suggestions welcome!**')
+    '@here **Which hero should I play this game? Suggestions welcome!**')
 
 # The default closed poll question.
 _DEFAULT_CLOSED_POLL_QUESTION = (
-    '**Which of the following heroes should I play this game?**')
+    '@here **Which of the following heroes should I play this game?**')
 
 # The template for each option in the poll.
 # Args: index, option
@@ -54,7 +51,7 @@ _RESULTS_SINGLE_WINNER_TEMPLATE = 'The winner is **{}** with **{} votes**!'
 # The template for poll results with a single winner.
 # Args: option, vote count
 _RESULTS_MULTIPLE_WINNERS_TEMPLATE = (
-    'The winner is **{}** with **{} votes**!')
+    'The winners are **{}** with **{} votes**!')
 
 # The string for joining each option in a multiple-winners poll result.
 _RESULTS_MULTIPLE_WINNERS_JOIN = '**, **'

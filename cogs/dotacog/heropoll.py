@@ -8,12 +8,14 @@ import discord
 from ..utils.dataIO import dataIO
 
 # The default open poll question.
-_DEFAULT_OPEN_POLL_QUESTION = (
-    '@here **Which hero should I play this game? Suggestions welcome!**')
+# Args: author
+_DEFAULT_OPEN_POLL_QUESTION_TEMPLATE = (
+    '@here **Which hero should {} play this game? Suggestions welcome!**')
 
 # The default closed poll question.
-_DEFAULT_CLOSED_POLL_QUESTION = (
-    '@here **Which of the following heroes should I play this game?**')
+# Args: author
+_DEFAULT_CLOSED_POLL_QUESTION_TEMPLATE = (
+    '@here **Which of the following heroes should {} play this game?**')
 
 # The template for each option in the poll.
 # Args: index, option
@@ -40,18 +42,20 @@ _RESULTS_WINNER_OPTION_TEMPLATE = '**{}.  {} ({} votes)**'
 _RESULTS_LOSER_OPTION_TEMPLATE = '{}.  {} ({} votes)'
 
 # The message for poll results when there are no options.
-_RESULTS_NO_OPTIONS_MESSAGE = (
-    'There were **no heroes to vote on**! Next time try suggesting heroes by '
-    'typing their names.')
+# Args: author
+_RESULTS_NO_OPTIONS_MESSAGE_TEMPLATE = (
+    'There were **no heroes to vote on** in the poll for {}! Next time try '
+    'suggesting heroes by typing their names.')
 
 # The template for poll results with a single winner.
-# Args: option, vote count
-_RESULTS_SINGLE_WINNER_TEMPLATE = 'The winner is **{}** with **{} votes**!'
+# Args: author, option, vote count
+_RESULTS_SINGLE_WINNER_TEMPLATE = (
+    'The winner of the poll for {} is **{}** with **{} votes**!')
 
 # The template for poll results with a single winner.
-# Args: option, vote count
+# Args: author, option, vote count
 _RESULTS_MULTIPLE_WINNERS_TEMPLATE = (
-    'The winners are **{}** with **{} votes**!')
+    'The winners of the poll for {} are **{}** with **{} votes**!')
 
 # The string for joining each option in a multiple-winners poll result.
 _RESULTS_MULTIPLE_WINNERS_JOIN = '**, **'
@@ -157,7 +161,7 @@ class HeroPollCommand(object):
     # Create the new poll.
     # If len(options) == 0, the poll is implicitly open. Otherwise, it is
     # closed.
-    poll = _Poll(ctx.message.author.id, options, len(options) == 0)
+    poll = _Poll(ctx.message.author, options, len(options) == 0)
     self._channel_poll_map[ctx.message.channel.id] = poll
     if len(self._channel_poll_map) == 1:
       # Only register the listener when adding the first poll.
@@ -238,22 +242,23 @@ class _VoteTotal(object):
 class _Poll(object):
   """A class to manage a hero poll."""
 
-  def __init__(self, author_id, options, is_open):
-    self._author_id = author_id
+  def __init__(self, author, options, is_open):
+    self._author = author
     self._options = options
     self._is_open = is_open
     # TODO(timzwiebel): Allow customizing the question (ideally non-globally)?
     if self._is_open:
-      self._question = _DEFAULT_OPEN_POLL_QUESTION
+      self._question = _DEFAULT_OPEN_POLL_QUESTION_TEMPLATE.format(author.name)
       self._instructions = _OPEN_POLL_INSTRUCTIONS
     else:
-      self._question = _DEFAULT_CLOSED_POLL_QUESTION
+      self._question = _DEFAULT_CLOSED_POLL_QUESTION_TEMPLATE.format(
+          author.name)
       self._instructions = _CLOSED_POLL_INSTRUCTIONS
     self._user_vote_map = {}
     self._message = None  # Also used as an indicator that the poll is ongoing.
 
   def get_author_id(self):
-    return self._author_id
+    return self._author.id
 
   async def say_poll(self, ctx):
     if self._message:
@@ -262,13 +267,14 @@ class _Poll(object):
     self._message = await ctx.bot.say(msg)
 
   async def say_results(self, ctx):
-    msg = self._question + '\n\n'
+    # Tally up the totals and build a message with all of the options.
     totals = [_VoteTotal(opt) for opt in self._options]
     winner_value = 0
     for index in self._user_vote_map.values():
       totals[index].total += 1
       winner_value = max(winner_value, totals[index].total)
     winners = []
+    msg = ''
     for i, vt in enumerate(totals):
       if vt.total == winner_value:
         template = _RESULTS_WINNER_OPTION_TEMPLATE
@@ -276,15 +282,25 @@ class _Poll(object):
       else:
         template = _RESULTS_LOSER_OPTION_TEMPLATE
       msg += template.format(i + 1, vt.option, vt.total) + '\n'
+
+    # Prepend the message with the winners.
     if len(winners) == 0:
       # Only happens if there were no options.
-      msg += _RESULTS_NO_OPTIONS_MESSAGE
+      msg = (
+          _RESULTS_NO_OPTIONS_MESSAGE_TEMPLATE.format(self._author.name)
+          + '\n\n' + msg)
     elif len(winners) == 1:
-      msg += '\n' + _RESULTS_SINGLE_WINNER_TEMPLATE.format(
-          winners[0], winner_value)
+      msg = (
+          _RESULTS_SINGLE_WINNER_TEMPLATE.format(
+              self._author.name, winners[0], winner_value)
+          + '\n\n' + msg)
     else:
-      msg += '\n' + _RESULTS_MULTIPLE_WINNERS_TEMPLATE.format(
-          _RESULTS_MULTIPLE_WINNERS_JOIN.join(winners), winner_value)
+      msg = (
+          _RESULTS_MULTIPLE_WINNERS_TEMPLATE.format(
+              self._author.name,
+              _RESULTS_MULTIPLE_WINNERS_JOIN.join(winners),
+              winner_value)
+          + '\n\n' + msg)
     await ctx.bot.say(msg)
     self._message = None  # No more voting.
 
@@ -311,13 +327,12 @@ class _Poll(object):
     if not self._message:
       return
 
-    is_poll_author = (message.author.id == self._author_id)
-
     # Check that the user hasn't voted.
-    if (not is_poll_author) and (message.author.id in self._user_vote_map):
+    if message.author.id in self._user_vote_map:
       return
 
     # Determine the index of the option.
+    is_poll_author = (message.author.id == self._author.id)
     if type(vote) is int:
       if vote <= 0 or vote > len(self._options):
         # Invalid index.
@@ -335,22 +350,31 @@ class _Poll(object):
           index = len(self._options) - 1
           self._message = await bot.edit_message(
               self._message, self._build_message())
+          # If it's the poll author, delete the message now since it won't count
+          # as a vote.
+          if is_poll_author:
+            await self._try_delete_message(bot, message)
         else:
           # Invalid option.
           return
 
     # Cast the vote. The author doesn't get a vote.
-    if not is_poll_author:
-      self._user_vote_map[message.author.id] = index
+    if is_poll_author:
+      return
+    self._user_vote_map[message.author.id] = index
 
+    # Delete the message and whisper the user so that they know that their vote
+    # was counted.
+    await self._try_delete_message(bot, message)
+    if not is_poll_author:
+      await bot.send_message(
+          message.author,
+          _VOTE_ACKNOWLEDGED_TEMPLATE.format(index + 1, self._options[index]))
+
+  async def _try_delete_message(self, bot, message):
     # If the bot has "Manage Messages" permissions, it will delete vote messages
     # after counting them to avoid clutter.
     try:
       await bot.delete_message(message)
     except discord.errors.Forbidden:
       pass
-    # Whisper the user so that they know that their vote was counted.
-    if not is_poll_author:
-      await bot.send_message(
-          message.author,
-          _VOTE_ACKNOWLEDGED_TEMPLATE.format(index + 1, self._options[index]))

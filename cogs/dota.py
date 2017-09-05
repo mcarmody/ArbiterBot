@@ -3,6 +3,7 @@
 from discord.ext import commands
 
 from .dotacog import heropoll
+from .dotacog import randomplayers
 
 
 class Dota(object):
@@ -10,6 +11,7 @@ class Dota(object):
 
   def __init__(self, bot):
     self._heropoll_command = heropoll.HeroPollCommand(bot)
+    self._randomplayers_command = randomplayers.RandomPlayersCommand()
 
   @commands.command(pass_context=True, no_pm=True)
   async def heropoll(self, ctx):
@@ -39,6 +41,20 @@ class Dota(object):
         heropoll abort
     """
     await self._heropoll_command.heropoll(ctx)
+
+  @commands.command(pass_context=True, no_pm=True)
+  async def randomplayers(self, ctx):
+    """Randomly selects players in a channel.
+
+    Sends a message to @here requesting that players react. After 30 seconds, the specified number of players are chosen at random from those that reacted.
+
+    Note that the count next to the reaction will be off by one due to the bot's initial reaction. This has no effect on player selection.
+
+    Usage:
+      Select 3 random players who react within to the message within 30 seconds:
+        randomplayers 3
+    """
+    await self._randomplayers_command.randomplayers(ctx)
 
 
 def setup(bot):
